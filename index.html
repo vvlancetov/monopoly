@@ -1,0 +1,418 @@
+<head>
+   <meta name="Access-Control-Allow-Origin" content="*" />
+   <meta name="Access-Control-Allow-Headers" content="*" />
+   <meta name="Access-Control-Allow-Credentials" content="true" />
+</head>
+<script>
+var user_logined=false;
+var user_joined=false;
+site_address="http://127.0.0.1:8080";
+
+function get_cookie(cookie_name)
+{
+  var results = document.cookie.match ( '(^|;) ?' + cookie_name + '=([^;]*)(;|$)' );
+  //console.log(document.cookie);
+  if ( results )
+    return (unescape(results[2]));
+  else
+    return null;
+}
+
+
+
+</script>
+<body>
+<p><center><h1>Monopoly</h1></center></p>
+<br>
+<br>
+
+<table width=100%><tr><td width=200 valign=top bgcolor=#00ee00>
+<div id="login_form">
+<!-- form -->
+<table>
+<tr><td align=center colspan=2><b>login (autosign)</b></td></tr>
+<tr><td>login: </td><td><input id="login" type=text size=10></input></td></tr>
+<tr><td>password: </td><td><input id="pass" type=text size=10></input></td></tr>
+<tr>
+<td align=center><button type=submit id="reg_button" onclick="register()">Register</button></td>
+<td align=center><button type=submit id="log_button" onclick="login_to_server()">Log in</button></td>
+</tr></table>
+<!-- form end-->
+</div>
+</td>
+<td valign=top bgcolor=#eeeeee><b>Statistics:</b><br>
+users (total/online):  <span id="totalusers">no data</span> / <span id="onlineusers">no data</span>
+
+<br>
+games played: <span id="playedgames">under construction</span>
+</td></tr></table>
+<br><br>
+<table width=100%><tr><td width=30% valign=top bgcolor=#0055ee><b>Leaderboard</b><br>
+<td valign=top bgcolor=#ee0000 wigth=30%><b>Lobby</b></td><td valign=top bgcolor=#44ee00><b>Games</b></td></tr>
+
+<tr><td valign=top bgcolor=#00ffff>
+<span id="leaderboard">no users</span>
+</td>
+<td valign=top bgcolor=#ff0000><span id="lobby">no users</span>
+<br>
+<br>
+<button id="join_button" disabled onclick="join_lobby()">Join lobby</button>
+
+</td>
+<td valign=top  bgcolor=#77ff00>
+<span id="currentgames">no games</span>
+<br><button type=submit id="show_game_button" onclick="show_game()" disabled>Show my game</button>
+</td></tr>
+
+</table>
+<br>
+<br>
+Console:<br>
+
+<textarea id="game_console" readonly rows = 20 cols = 80></textarea>
+
+</body>
+
+<script>
+function update_page()
+{
+var server_info_address="http://127.0.0.1:8080/info";
+var ajax = new XMLHttpRequest();
+var totalusers=0, onlineusers=0;
+ajax.open('get', server_info_address);
+ajax.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+ajax.send();
+
+// выполнить код, когда придёт ответ с GET-запроса
+ajax.onreadystatechange = function() {
+    if (ajax.readyState == 4) {
+        if (ajax.status == 200 || ajax.status == 304) {
+            // код при успешном запросе
+            //document.write (ajax.response); // ответ сервера
+			//парсим ответ сервера 
+			var server_info=JSON.parse(ajax.response);
+			//document.write(server_info[0].totalusers);
+			document.getElementById("totalusers").innerHTML=server_info[0].totalusers;
+			document.getElementById("onlineusers").innerHTML=server_info[1].onlineusers;
+			document.getElementById("playedgames").innerHTML=server_info[2].playedgames;
+			
+			let board="";
+			for (let i=0;i<server_info[3].leaderboard.length;i++)
+				{
+				if (server_info[3].leaderboard[i]!=null) board+="ID=" + i + ": wins=" + server_info[3].leaderboard[i] + "<br>";
+				}
+			document.getElementById("leaderboard").innerHTML=board;
+			getinfo_lobby();
+			let games_array = JSON.parse(server_info[4].currentgames);
+			//console.log(games_array);
+			let currentgames="";
+			for (let i=0;i<games_array.length;i++)
+				{
+				currentgames+="<a href=game?ID=" + games_array[i].game_id + ">#"+games_array[i].game_id + ": " + games_array[i].users_id + "</a><br>";
+				}
+			document.getElementById("currentgames").innerHTML=currentgames;
+			
+        } else {
+            // код при ошибке
+			document.write("error: " + ajax.response);
+			}
+		}	
+	}
+}
+</script>
+
+<script>
+function login_to_server(login,pass)
+{
+	var login_address="http://127.0.0.1:8080/login";
+	
+	if (login==undefined || login==null) 
+		var login = document.getElementById("login").value;
+	if (pass==undefined || pass == null)
+		var pass = document.getElementById("pass").value;
+	
+	// Оправка данных через ПОСТ-запрос
+	var login_request = new XMLHttpRequest();
+	var post_request = new FormData();
+	post_request.append(login, pass);
+	login_request.open('POST', login_address, true);
+	login_request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	login_request.send(post_request);
+
+	login_request.onreadystatechange = function() {
+    
+	if (login_request.readyState == 4) {
+        if (login_request.status == 200 || login_request.status == 304) {
+			//парсим ответ сервера 
+			if (Number(login_request.response)>0)
+				{
+				//console.log("response=" + login_request.response);
+				//ответ сервера положительный
+				user_logined = true;
+				//пишем куки
+				let date = new Date();//
+				date.setSeconds(3600 * 24 * 5);
+				//console.log(date);
+				document.cookie = "login=" + login + "; path=/; expires=" + date.toUTCString() + "; domain=127.0.0.1";
+				document.cookie = "pass=" + pass + "; path=/; expires=" + date.toUTCString() + "; domain=127.0.0.1";
+				//console.log("login=" + login + "; path=/; expires=" + date.toUTCString() + "; domain=127.0.0.1"	);
+				//меняем форму логина
+				document.getElementById("login_form").innerHTML="<b>Username:</b> <br>" + login + "<br> <button type=submit id=\"logout_button\" onclick=\"logout_from_server()\">Logout</button>";
+				document.getElementById("join_button").disabled=false;
+				window.login=login;
+				window.pass=pass;
+				
+				return true;
+				}
+				else {alert("Bad login/pass!");}
+			}
+		}
+	}	
+	return false;
+}
+
+function logout_from_server()
+{
+		//пишем куки
+		let date = new Date();//
+		date.setSeconds(0);
+		document.cookie = "login=\"\"; path=/; expires=" + date.toUTCString() + "; domain=127.0.0.1";
+		document.cookie = "pass=\"\"; path=/; expires=" + date.toUTCString() + "; domain=127.0.0.1";
+		location.reload();
+}	
+
+function join_lobby()
+{
+	var join_address="http://127.0.0.1:8080/join";
+	console.log(login + " " + pass);
+	if (login==undefined || login=="") return false;
+	if (pass==undefined || pass=="") return false;
+	
+	// Оправка данный через ПОСТ-запрос
+	var join_request = new XMLHttpRequest();
+	var post_request = new FormData();
+	post_request.append(login, pass);
+	join_request.open('POST', join_address, true);
+	join_request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	join_request.send(post_request);
+
+	join_request.onreadystatechange = function() {
+	
+	if (join_request.readyState == 4) {
+		if (join_request.status == 200 || join_request.status == 304) {
+				//парсим ответ сервера 
+			if (join_request.response=="OK")
+				{
+				console.log("response=" + join_request.response);
+				//ответ сервера положительный
+				user_joined = true;
+				document.getElementById("join_button").innerHTML="Quit lobby";
+				document.getElementById("join_button").onclick=quit_lobby;
+				getinfo_lobby();
+				
+				return true;
+				}
+				else 
+				{
+					getinfo_lobby();
+					alert("Join error!");
+				}
+			}
+		}
+	}	
+	return false;
+}
+
+function getinfo_lobby()
+{
+	var server_info_address="http://127.0.0.1:8080/info_lobby";
+
+	var ajax_lobby_info = new XMLHttpRequest();
+	ajax_lobby_info.open('get', server_info_address);
+	ajax_lobby_info.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	ajax_lobby_info.send();
+
+	// выполнить код, когда придёт ответ
+	ajax_lobby_info.onreadystatechange = function() {
+		if (ajax_lobby_info.readyState == 4) {
+			if (ajax_lobby_info.status == 200 || ajax_lobby_info.status == 304) {
+				// код при успешном запросе
+				//парсим ответ сервера 
+				user_joined = false;
+				document.getElementById("join_button").innerHTML="Join lobby";
+				document.getElementById("join_button").onclick=join_lobby;
+				document.getElementById("join_button").disabled=true;
+				
+				if (ajax_lobby_info.response!="empty lobby")
+				{
+				var server_info=JSON.parse(ajax_lobby_info.response);
+				let lobby="";
+				for (let i=0;i<server_info.length;i++)
+					{
+					lobby+=server_info[i] + "<br>";
+						if (login==server_info[i]) 
+							{
+								user_joined = true;
+								document.getElementById("join_button").innerHTML="Quit lobby";
+								document.getElementById("join_button").onclick=quit_lobby;
+							}
+					}
+				document.getElementById("lobby").innerHTML=lobby;
+				}
+				else
+				{
+				document.getElementById("lobby").innerHTML="no users";
+				}
+				if (user_logined) document.getElementById("join_button").disabled=false;
+				
+			} else {
+				// код при ошибке
+				game_console("error: " + ajax_lobby_info.response);
+			}
+		}
+	}
+
+}
+
+function quit_lobby()
+{
+	var join_quit_address="http://127.0.0.1:8080/quit_lobby";
+	if (login==undefined || login=="") return false;
+	if (pass==undefined || pass=="") return false;
+	
+	// Оправка данный через ПОСТ-запрос
+	var join_quit_request = new XMLHttpRequest();
+	var post_request = new FormData();
+	post_request.append(login, pass);
+	join_quit_request.open('POST', join_quit_address, true);
+	join_quit_request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	join_quit_request.send(post_request);
+
+	join_quit_request.onreadystatechange = function() {
+	
+	if (join_quit_request.readyState == 4) {
+		if (join_quit_request.status == 200 || join_quit_request.status == 304) {
+				//парсим ответ сервера 
+			if (join_quit_request.response=="OK")
+				{
+				console.log("response=" + join_quit_request.response);
+				//ответ сервера положительный
+				user_joined = false;
+				document.getElementById("join_button").innerHTML="Join lobby";
+				document.getElementById("join_button").onclick=join_lobby;
+				
+				getinfo_lobby();
+				return true;
+				}
+				else 
+				{
+					getinfo_lobby();
+					alert("Quit lobby error!");
+				}
+			}
+		}
+	}	
+	return false;
+}
+
+function register()
+{
+	//game_console("register");
+	regwin = window.open(site_address + "/register", "Register new user" , "left=200,top=200,location=no,menubar=no,toolbar=no,width=400,height=200");
+	if (regwin == null) game_console("registration window blocked");
+}
+
+
+function check_for_game()
+{
+	var check_game_address="http://127.0.0.1:8080/check_game";
+	//проверка старта игры
+	//game_console(user_logined);
+	if (user_logined)
+		{
+		//проверка наличия игры в статусе running + наличие пользователя в списке
+		if (login==undefined || login=="") return false;
+		if (pass==undefined || pass=="") return false;
+		// Оправка данный через ПОСТ-запрос
+		var check_game_request = new XMLHttpRequest();
+		var post_request = new FormData();
+		post_request.append(login, pass);
+		check_game_request.open('POST', check_game_address, true);
+		check_game_request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+		check_game_request.send(post_request);
+		//game_console("post sent");
+		check_game_request.onreadystatechange = function() {
+		if (check_game_request.readyState == 4) {
+			if (check_game_request.status == 200 || check_game_request.status == 304) {
+					//парсим ответ сервера 
+				if (check_game_request.response=="NO GAME")
+					{
+						//game_console("no game found for user: " + login);
+						//ответ сервера положительный
+						//user_joined = false;
+						//document.getElementById("join_button").innerHTML="Join lobby";
+						//document.getElementById("join_button").onclick=join_lobby;
+						
+						//getinfo_lobby();
+						game_id=undefined;
+						document.getElementById("show_game_button").disabled=true;
+						
+					return true;
+					}
+					else 
+					{
+						//game_console("game found: " + check_game_request.response);
+						
+						document.getElementById("show_game_button").disabled=false;
+						game_id=check_game_request.response.split("=")[1];
+						//game_console("ID=" + game_id);
+						document.getElementById("show_game_button").onclick=show_game;
+						return true;
+					}
+				}
+			}
+		}	
+	}
+}
+
+//auto login by cookies
+var login = get_cookie("login");
+var pass = get_cookie("pass");
+game_console("log&pass = " + login + " " + pass);
+if (login && pass) login_to_server(login, pass);
+
+//start updating page
+update_page();
+setTimeout(function run() {
+	update_page();
+	if (user_joined!=undefined)
+		{
+			if (user_joined) game_console("User joined");
+		}
+	setTimeout(run, 5000);
+		}, 5000);
+
+//start checking for game
+setTimeout(function ch_game() {
+	//game_console("game check");
+	check_for_game();
+	setTimeout(ch_game, 5000);
+		}, 5000);
+
+		
+function show_game()
+{
+if (!game_id) return false;
+
+	//game_console(screen.availHeight);
+	regwin = window.open(site_address + "/game?ID="+game_id, "Game N "+game_id , "location=no,menubar=no,toolbar=no,width="+screen.availWidth + ",height=" + screen.availHeight);
+
+
+}		
+	
+		
+function game_console (text)
+{
+	document.getElementById("game_console").innerHTML=document.getElementById("game_console").innerHTML + "\n" + text;
+}
+</script>

@@ -1,0 +1,571 @@
+<head>
+   <meta name="Access-Control-Allow-Origin" content="*" />
+   <meta name="Access-Control-Allow-Headers" content="*" />
+   <meta name="Access-Control-Allow-Credentials" content="true" />
+</head>
+
+<body id="body">
+<table border=1 width=100%>
+<tr><td align=center>
+Variables
+</td>
+<td align=center>
+Game lobby
+</td>
+</tr>
+<tr><td>
+<span id="vars">
+</span>
+</td>
+<td>
+<span id="lobby">
+</span>
+</td>
+</tr>
+<tr><td colspan=2 style="background-color: black; color: white; font-family: monospace; font-size: 10px">
+<span id="game_console">
+</span>
+</td>
+</tr>
+</table>
+</body>
+<script>
+
+
+var user_logined=false;
+var user_id;
+var in_game=false;
+var site_address="http://127.0.0.1:8080";
+var login="user10";
+var pass="pass10";
+var user_joined;
+var game_id;
+login_to_server(login,pass);
+var wait_for_response=false;
+var user_index;
+var last_time=new Date();
+
+
+function login_to_server(login,pass)
+{
+	var login_address=site_address + "/login";
+	
+	// Оправка данный через ПОСТ-запрос
+	var login_request = new XMLHttpRequest();
+	var post_request = new FormData();
+	post_request.append(login, pass);
+	login_request.open('POST', login_address, true);
+	login_request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	login_request.send(post_request);
+
+	login_request.onreadystatechange = function() {
+    
+	if (login_request.readyState == 4) {
+        if (login_request.status == 200 || login_request.status == 304) {
+			//парсим ответ сервера 
+			if (Number(login_request.response)>0)
+				{
+				//console.log("response=" + login_request.response);
+				//ответ сервера положительный
+				user_logined = true;
+				window.login=login;
+				window.pass=pass;
+				user_id = Number(login_request.response);
+				//console.log("user_id=" + user_id);
+				
+				return true;
+				}
+				//else {alert("Bad login/pass!");}
+			}
+		}
+	}	
+	return false;
+}
+
+function getinfo_lobby()
+{
+	var server_info_address="http://127.0.0.1:8080/info_lobby";
+
+	var ajax_lobby_info = new XMLHttpRequest();
+	ajax_lobby_info.open('get', server_info_address);
+	ajax_lobby_info.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	ajax_lobby_info.send();
+
+	// выполнить код, когда придёт ответ
+	ajax_lobby_info.onreadystatechange = function() {
+		if (ajax_lobby_info.readyState == 4) {
+			if (ajax_lobby_info.status == 200 || ajax_lobby_info.status == 304) {
+				// код при успешном запросе
+				//парсим ответ сервера 
+				user_joined = false;
+				
+				if (ajax_lobby_info.response!="empty lobby")
+				{
+				var server_info=JSON.parse(ajax_lobby_info.response);
+				let lobby="";
+				for (let i=0;i<server_info.length;i++)
+					{
+						lobby+=server_info[i] + "<br>";
+						if (login==server_info[i]) 
+							{
+								user_joined = true;
+							}
+					}
+					document.getElementById("lobby").innerHTML=lobby;
+				}
+				else
+				{
+				document.getElementById("lobby").innerHTML="no users";
+				}
+				
+				if (!user_joined && !in_game)
+					{
+						//добавляем себя в лобби
+						join_lobby();
+						user_index=undefined;
+					}
+				
+				
+			} else {
+				// код при ошибке
+				game_console("error: " + ajax_lobby_info.response);
+			}
+		}
+	}
+
+}
+
+function show_vars()
+	{
+	let html="";
+	html+="login=" + login + "<br>";
+	html+="pass=" + pass + "<br>";
+	html+="user_logined=" + user_logined + "<br>";
+	html+="user_id=" + user_id + "<br>";
+	html+="in_game=" + in_game + "<br>";
+	html+="site_address=" + site_address + "<br>";
+	html+="user_joined=" + user_joined + "<br>";
+	html+="game_id=" + game_id + "<br>";
+	html+="user_index=" + user_index + "<br>";
+	
+	document.getElementById("vars").innerHTML=html;
+	}
+
+function join_lobby()
+{
+	var join_address=site_address + "/join";
+	//console.log(login + " " + pass);
+	if (login==undefined || login=="") return false;
+	if (pass==undefined || pass=="") return false;
+	
+	// Оправка данный через ПОСТ-запрос
+	var join_request = new XMLHttpRequest();
+	var post_request = new FormData();
+	post_request.append(login, pass);
+	join_request.open('POST', join_address, true);
+	join_request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	join_request.send(post_request);
+
+	join_request.onreadystatechange = function() {
+	
+	if (join_request.readyState == 4) {
+		if (join_request.status == 200 || join_request.status == 304) {
+				//парсим ответ сервера 
+			if (join_request.response=="OK")
+				{
+				//console.log("response=" + join_request.response);
+				//ответ сервера положительный
+				user_joined = true;
+				game_console("Joined to lobby");
+				getinfo_lobby();
+				
+				return true;
+				}
+				else 
+				{
+					getinfo_lobby();
+					game_console("Join error!");
+				}
+			}
+		}
+	}	
+	return false;
+}
+
+function game_console (text)
+{
+	document.getElementById("game_console").innerHTML=document.getElementById("game_console").innerHTML + "<br>\n" + text;
+}
+	
+function check_for_game()
+{
+	var check_game_address=site_address + "/check_game";
+	//проверка старта игры
+	if (user_logined)
+		{
+		//проверка наличия игры в статусе running + наличие пользователя в списке
+		if (login==undefined || login=="") return false;
+		if (pass==undefined || pass=="") return false;
+		// Оправка данный через ПОСТ-запрос
+		var check_game_request = new XMLHttpRequest();
+		var post_request = new FormData();
+		post_request.append(login, pass);
+		check_game_request.open('POST', check_game_address, true);
+		check_game_request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+		check_game_request.send(post_request);
+		//game_console("post sent");
+		check_game_request.onreadystatechange = function() {
+		if (check_game_request.readyState == 4) {
+			if (check_game_request.status == 200 || check_game_request.status == 304) {
+					//парсим ответ сервера 
+				if (check_game_request.response=="NO GAME")
+					{
+						game_id=undefined;
+						in_game=false;
+						return true;
+					}
+					else 
+					{
+						game_id=check_game_request.response.split("=")[1];
+						in_game=true;
+						return true;
+					}
+				}
+			}
+		}	
+	}
+}
+
+
+function run_game(game_id)
+	{
+		//загружаем данные для игры
+		//console.log("run");
+		let this_time = new Date();
+		elapsed = (this_time-last_time)/1000;
+		//game_console("time spend = " + elapsed + " sec");
+		last_time=this_time;
+		if (wait_for_response==true) 
+			{
+				game_console("wait");
+				return; //ждем окончания асинхронного запроса
+			}
+		var get_data = new Promise (get_my_data);
+
+		get_data
+		.then(handle_data)
+		.catch(err => {
+			game_console("get_my_data error: " + err);
+			wait_for_response=false;
+			});
+
+		function get_my_data (resolve, reject)
+			{
+				//запрашиваем и возвращаем данные по конкретной игре
+				var get_gamedata_address=site_address + "/get_game_data?id=" + game_id;
+				//console.log(get_gamedata_address);
+				var ajax_get_gamedata = new XMLHttpRequest();
+				ajax_get_gamedata.open('get', get_gamedata_address);
+				ajax_get_gamedata.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+				ajax_get_gamedata.send();
+
+				// выполнить код, когда придёт ответ
+				ajax_get_gamedata.onreadystatechange = function() 
+					{
+					if (ajax_get_gamedata.readyState == 4) 
+						{
+						if (ajax_get_gamedata.status == 200 || ajax_get_gamedata.status == 304) 
+							{
+							//возвращаем данные игры
+							//console.log("200");
+							resolve(ajax_get_gamedata.response); 
+							return;
+							}
+						else
+							{
+							//возвращаем ошибку
+							reject(ajax_get_gamedata.response);
+							return;
+							}
+						}
+					}
+			}
+		
+	
+		function handle_data(res)
+			{
+				//обрабатываем данные игры
+				//console.log(res);
+				/* ответ сервераё
+				data_to_send.push(res.rows[0].users_id);//0
+				data_to_send.push(res.rows[0].users_money);
+				data_to_send.push(res.rows[0].users_positions);
+				data_to_send.push(res.rows[0].active_user_id);
+				data_to_send.push(res.rows[0].next_turn);//4
+				data_to_send.push(res.rows[0].move_state);
+				data_to_send.push(res.rows[0].field_owners);
+				data_to_send.push(res.rows[0].fields_layout);
+				data_to_send.push(res.rows[0].auction);//8
+				*/
+				if (res=="no game")
+					{
+						game_console("server response=" + res);
+						wait_for_response=false;
+						return;
+					}
+				data_array=JSON.parse(res);
+				//console.log("UI1=" + user_index);
+				//console.log(data_array[0]);
+				if(user_index==undefined)
+					{
+						//определяем позицию пользователя в массиве
+						
+						for(let i=0;i<data_array[0].length;i++)
+							{
+								if (data_array[0][i]==user_id) user_index=i;
+							}
+					}
+
+					if (data_array[3]==user_id && data_array[5]=='wait' && data_array[7][data_array[2][user_index]].field_type=="PROPERTY")
+					{
+						//если текущий пользователь активен	
+						//и поле свободно - принимаем решение о покупке
+						//game_console("owner " + data_array[6][data_array[2][user_index]]);
+						if(data_array[6][data_array[2][user_index]]==0 || data_array[6][data_array[2][user_index]]==null)
+							{
+								//если денег > 200 - покупаем
+								//game_console("money=" + data_array[1][user_index]);
+								if (data_array[1][user_index]>200 + data_array[7][data_array[2][user_index]].base_price)
+									{
+										game_console("buy field. money=" + data_array[1][user_index] + " price=" + data_array[7][data_array[2][user_index]].base_price);
+										wait_for_response=true;
+										
+										var buy_query = new Promise(buy_field);
+										
+										buy_query
+										.then(check_response)
+										.catch(e=>{
+											game_console("buy_field error: " + e);
+											wait_for_response=false;
+											});
+									
+										function buy_field (resolve, reject)
+											{
+												
+												var buy_f_address=site_address + "/buy_field";
+												var ajax_buy_f = new XMLHttpRequest();
+												ajax_buy_f.open('post', buy_f_address,true);
+												ajax_buy_f.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+												var post_request = new FormData();
+												post_request.append("login", login);
+												post_request.append("pass", pass);
+												post_request.append("user_id",user_id);
+												post_request.append("game_id", game_id);
+												let field_id = data_array[7][data_array[2][user_index]].field_id;
+												post_request.append("field_id", field_id);
+												console.log(login, pass, user_id, game_id, field_id);
+												ajax_buy_f.send(post_request);
+
+												// выполнить код, когда придёт ответ
+												ajax_buy_f.onreadystatechange = function() 
+													{
+													if (ajax_buy_f.readyState == 4) 
+														{
+														if (ajax_buy_f.status == 200 || ajax_buy_f.status == 304) 
+															{
+															//возвращаем ID игрока
+															//user_id = ajax_get_id.response;
+															resolve(ajax_buy_f.response); 
+															return;
+															}
+														else
+															{
+															//возвращаем ошибку
+															reject(ajax_buy_f.response);
+															return;
+															}
+														}
+													}
+											}
+											
+										function check_response(res)
+											{
+												wait_for_response=false;
+												if (res=="OK")
+													{
+														game_console("field " + data_array[7][data_array[2][user_index]].field_name + " bought");
+													}												
+											
+											}
+									}
+							}
+					
+						}
+					
+					if (data_array[3]==user_id && data_array[5]=='wait')
+						{
+							//проверяем наличие положительного баланса в режиме "wait"
+							if (data_array[1][user_index]<0)
+								{
+									//продаем недвижимость при отрицательном балансе
+									let field_for_sale;
+									for (let i = 0;i<data_array[6].length;i++)
+										{
+											if(data_array[6][i]==user_id)
+												{
+													field_for_sale=i;
+												}
+										}
+									//продаем поле
+									if (field_for_sale!=undefined)
+										{
+											var sell_f_address=site_address+"/sell_field";
+											var ajax_sell_f = new XMLHttpRequest();
+											ajax_sell_f.open('post', sell_f_address,true);
+											ajax_sell_f.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+											var post_request = new FormData();
+											post_request.append("login", login);
+											post_request.append("pass", pass);
+											post_request.append("user_id",user_id);
+											post_request.append("game_id", game_id);
+											post_request.append("field_id", field_for_sale);
+											//console.log(login, pass, user_id, game_id, field_id);
+											wait_for_response=true;
+											ajax_sell_f.send(post_request);
+
+											// выполнить код, когда придёт ответ
+											ajax_sell_f.onreadystatechange = function() 
+												{
+												if (ajax_sell_f.readyState == 4) 
+													{
+													if (ajax_sell_f.status == 200 || ajax_sell_f.status == 304) 
+														{
+															//включаем бота
+															wait_for_response=false;
+															game_console("field " + field_for_sale + " sold");
+														}
+													else
+														{
+															//возвращаем ошибку
+															wait_for_response=false;
+															console.log("error when sell field " + ajax_sell_f.response);
+														}
+													}
+												}
+
+											
+											
+											
+										
+										
+										}
+								}
+						}
+					
+					
+					if (data_array[5]=='auction')
+						{
+							
+							//если аукцион - участвуем
+							if (data_array[8][2]!=user_id)
+							//field,price,user_ID,time
+								{
+									//game_console("auction!");
+									let free_money = data_array[1][user_index]-200;
+									if (free_money>300) free_money=300;
+									let new_bet;
+									if (data_array[8][2]==0) new_bet=data_array[8][1];
+										else new_bet=data_array[8][1]+20;
+									if (free_money<new_bet) 
+										{
+											return; //отказываемся от участия
+											game_console("too few money");
+										}
+									
+									//если денег достаточно - делаем ставку 
+									
+									wait_for_response=true;
+										
+									var buy_auc_query = new Promise(buy_auc_field);
+										
+										buy_auc_query
+										.then(check_auc_response)
+										.catch(e=>{
+											game_console("buy_auc_query error: " + e);
+											wait_for_response=false;
+											});
+									
+										function buy_auc_field (resolve, reject)
+											{
+												
+												var buy_f_address=site_address + "/buy_auction_field";
+												var ajax_buy_f = new XMLHttpRequest();
+												ajax_buy_f.open('post', buy_f_address,true);
+												ajax_buy_f.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+												var post_request = new FormData();
+												post_request.append("login", login);
+												post_request.append("pass", pass);
+												post_request.append("user_id",user_id);
+												post_request.append("game_id", game_id);
+												post_request.append("bet", new_bet);
+												//console.log(login, pass, user_id, game_id, field_id);
+												ajax_buy_f.send(post_request);
+
+												// выполнить код, когда придёт ответ
+												ajax_buy_f.onreadystatechange = function() 
+													{
+													if (ajax_buy_f.readyState == 4) 
+														{
+														if (ajax_buy_f.status == 200 || ajax_buy_f.status == 304) 
+															{
+															//возвращаем ID игрока
+															//user_id = ajax_get_id.response;
+															resolve(ajax_buy_f.response); 
+															return;
+															}
+														else
+															{
+															//возвращаем ошибку
+															reject(ajax_buy_f.response);
+															return;
+															}
+														}
+													}
+											}
+											
+										function check_auc_response(res)
+											{
+												wait_for_response=false;
+												if (res=="OK")
+													{
+														game_console("bet for field " + data_array[7][data_array[2][user_index]].field_name + " made");
+													}												
+											
+											}
+								
+								}
+						}
+			}
+	
+	}
+
+
+
+
+	
+check_for_game();	
+show_vars();
+setTimeout(function run() {
+	if (in_game==false) getinfo_lobby();
+	show_vars();
+	if (!user_logined) login_to_server(login,pass);
+	check_for_game();
+	if(Number(game_id)>0) run_game (game_id);
+	
+	setTimeout(run, 2000);
+		}, 2000);
+
+		
+		
+		
+</script>

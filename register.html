@@ -1,0 +1,72 @@
+<head>
+   <meta name="Access-Control-Allow-Origin" content="*" />
+   <meta name="Access-Control-Allow-Headers" content="*" />
+   <meta name="Access-Control-Allow-Credentials" content="true" />
+</head>
+<body>
+<div id="regform">
+<table>
+<tr><td align=center colspan=2><b>New user</b></td></tr>
+<tr><td>login: </td><td><input id="login" type=text size=10></input></td></tr>
+<tr><td>password: </td><td><input id="pass" type=text size=10></input></td></tr>
+<tr>
+<td align=center colspan=2><button type=submit id="reg_button" onclick="register()">Register</button></td>
+</tr>
+</table>
+</div>
+</body>
+
+<script>
+function register()
+{
+	var reg_address="http://127.0.0.1:8080/register";
+
+	// Оправка данный через ПОСТ-запрос
+	var reg_request = new XMLHttpRequest();
+	var post_request = new FormData();
+	var login = document.getElementById("login").value;
+	var pass = document.getElementById("pass").value;
+	if(login.length<3 || pass.length<3) 
+		{
+		document.getElementById("regform").innerHTML="<p align=center>Input more characters (>=3)</p>"
+		return false;
+		}
+	post_request.append(login, pass);
+	reg_request.open('POST', reg_address, true);
+	reg_request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	reg_request.send(post_request);
+
+	reg_request.onreadystatechange = function() {
+    
+	if (reg_request.readyState == 4) {
+        if (reg_request.status == 200 || ajax.status == 304) {
+			//парсим ответ сервера 
+			if (reg_request.response=="OK")
+				{
+				console.log("response=" + reg_request.response);
+				//ответ сервера положительный
+				//window.opener.user_logined = true;
+				//пишем куки
+				let date = new Date(new Date().getTime() + 60*60*24*10);//
+				document.cookie = "login=" + login + "; path=/; expires=" + date.toUTCString() + "; domain=localhost";
+				document.cookie = "pass=" + pass + "; path=/; expires=" + date.toUTCString() + "; domain=localhost";
+				//меняем форму логина
+				//window.opener.login=login;
+				//window.opener.register_done(login, pass);
+				//window.opener.location.reload();
+				document.getElementById("regform").innerHTML="<p align=center>Registration done.<br>Close this window.</p>"
+				//window.close();
+				return true;
+				}
+				else {
+						document.getElementById("regform").innerHTML="<p align=center>Error.<br>Maybe user exist</p>"
+						//alert("Bad login/pass!");
+					}
+			}
+		}
+	}	
+	return false;
+
+
+}
+</script>

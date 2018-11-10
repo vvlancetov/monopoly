@@ -1,0 +1,699 @@
+<head>
+   <meta name="Access-Control-Allow-Origin" content="*" />
+   <meta name="Access-Control-Allow-Headers" content="*" />
+   <meta name="Access-Control-Allow-Credentials" content="true" />
+</head>
+
+<body id="body">
+<p id="text1">Loading...</p>
+<table width=100% height=100% border=0 style="border-collapse: collapse">
+<tr	>
+<td valign=top>
+<div id="players_score">
+score...
+</div>
+</td>
+<td width=100% rowspan=3>
+
+<table border=1 width=100% height=100% cellspacing=0 cellpadding=0 style="border-collapse: collapse">
+<tr>
+<td id="cell_0"><div id="field_0"></div></td>
+<td id="cell_1"><div id="field_1"></div></td>
+<td id="cell_2"><div id="field_2"></div></td>
+<td id="cell_3"><div id="field_3"></div></td>
+<td id="cell_4"><div id="field_4"></div></td>
+<td id="cell_5"><div id="field_5"></div></td>
+<td id="cell_6"><div id="field_6"></div></td>
+<td id="cell_7"><div id="field_7"></div></td>
+<td id="cell_8"><div id="field_8"></div></td>
+<td id="cell_9"><div id="field_9"></div></td>
+<td id="cell_10"><div id="field_10"></div></td>
+</tr>
+
+<tr>
+<td id="cell_39"><div id="field_39"></div></td><td rowspan=9 colspan=9 align=center valign=middle>center</td><td id="cell_11"><div id="field_11"></div></td>
+</tr>
+
+<tr>
+<td id="cell_38"><div id="field_38"></div></td><td id="cell_12"><div id="field_12"></div></td>
+</tr>
+
+<tr>
+<td id="cell_37"><div id="field_37"></div></td><td id="cell_13"><div id="field_13"></div></td>
+</tr>
+
+<tr>
+<td id="cell_36"><div id="field_36"></div></td><td id="cell_14"><div id="field_14"></div></td>
+</tr>
+
+<tr>
+<td id="cell_35"><div id="field_35"></div></td><td id="cell_15"><div id="field_15"></div></td>
+</tr>
+
+<tr>
+<td id="cell_34"><div id="field_34"></div></td><td id="cell_16"><div id="field_16"></div></td>
+</tr>
+
+<tr>
+<td id="cell_33"><div id="field_33"></div></td><td id="cell_17"><div id="field_17"></div></td>
+</tr>
+
+<tr>
+<td id="cell_32"><div id="field_32"></div></td><td id="cell_18"><div id="field_18"></div></td>
+</tr>
+
+<tr>
+<td id="cell_31"><div id="field_31"></div></td><td id="cell_19"><div id="field_19"></div></td>
+</tr>
+
+<tr>
+<td id="cell_30"><div id="field_30"></div></td>
+<td id="cell_29"><div id="field_29"></div></td>
+<td id="cell_28"><div id="field_28"></div></td>
+<td id="cell_27"><div id="field_27"></div></td>
+<td id="cell_26"><div id="field_26"></div></td>
+<td id="cell_25"><div id="field_25"></div></td>
+<td id="cell_24"><div id="field_24"></div></td>
+<td id="cell_23"><div id="field_23"></div></td>
+<td id="cell_22"><div id="field_22"></div></td>
+<td id="cell_21"><div id="field_21"></div></td>
+<td id="cell_20"><div id="field_20"></div></td>
+</tr>
+
+
+</table>
+
+</td>
+</tr>
+<tr><td valign=top><div id="controls"></div></td></tr>
+<tr height=80%><td valign=top height=100%><div id="auction"></div></td></tr>
+
+<tr><td colspan=2>
+
+<div id="chat"></div>
+
+</td>
+</tr>
+</table>
+</body>
+
+<script>
+
+function get_cookie(cookie_name)
+{
+  var results = document.cookie.match ( '(^|;) ?' + cookie_name + '=([^;]*)(;|$)' );
+  if ( results )
+    return (unescape(results[2]));
+  else
+    return null;
+}
+
+//login data from cookies
+var login = get_cookie("login");
+var pass = get_cookie("pass");
+var user_id = undefined;
+
+
+//colors
+var colors = ['red','green','blue','orange','black','blue','orange','black'];
+var get_str = location.search.split("?")[1];
+var game_id = get_str.split("=")[1];
+document.getElementById("text1").innerHTML="Game # " + game_id;
+
+//show players score
+function show_scores ()
+{
+	var show_scores_address="http://127.0.0.1:8080/show_scores?ID="+game_id;
+	var ajax_scores_info = new XMLHttpRequest();
+	ajax_scores_info.open('get', show_scores_address);
+	ajax_scores_info.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	ajax_scores_info.send();
+
+	// выполнить код, когда придёт ответ
+	ajax_scores_info.onreadystatechange = function() {
+		if (ajax_scores_info.readyState == 4) {
+			if (ajax_scores_info.status == 200 || ajax_scores_info.status == 304) {
+				//код при успешном запросе
+				//парсим ответ сервера 
+				let users_scores = JSON.parse(ajax_scores_info.response);
+				let html = "<table width=200 border=1 cellpadding=0 cellspacing=0 style=\"border-collapse: collapse\"><tr><td align=center width=50>ID</td><td align=center>Money</td><td width=50 align=center>Pos.</td></tr>";
+				//document.getElementById("players_score").innerHTML="<table>";
+				let bold="", bold_end="";
+				for(let i=0;i<users_scores[0].length;i++)
+					{
+					if (users_scores[3]== users_scores[0][i]) {bold="<b>";bold_end="</b>";} else {bold="";bold_end="";}
+					html+="<tr><td align=center><font color="+colors[i] + ">"+ bold + users_scores[0][i]+ bold_end + "</td><td align=center><font color="+colors[i]+ ">" + bold + users_scores[1][i]+ bold_end + "</font></td><td align=center><font color=" + colors[i]+ ">" + bold + users_scores[2][i]+ bold_end + "</font></td></tr>";
+					//console.log("ids: " + users_scores[0][i]);
+					//console.log("money: " + users_scores[1][i]);
+					}
+				document.getElementById("players_score").innerHTML=html+"</table>";
+				
+			} else {
+				// код при ошибке
+				console.log("error: " + ajax_scores_info.response);
+			}
+		}
+	}
+
+}
+
+function show_field ()
+{
+	var show_field_address="http://127.0.0.1:8080/show_field?ID="+game_id;
+	var ajax_field_info = new XMLHttpRequest();
+	ajax_field_info.open('get', show_field_address);
+	ajax_field_info.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	ajax_field_info.send();
+	
+	// выполнить код, когда придёт ответ
+	ajax_field_info.onreadystatechange = function() {
+		if (ajax_field_info.readyState == 4) {
+			if (ajax_field_info.status == 200 || ajax_field_info.status == 304) {
+				//код при успешном запросе
+				//парсим ответ сервера 
+				//console.log(ajax_field_info.response);
+				let server_response=JSON.parse(ajax_field_info.response);
+				let field_data = server_response[0];
+				let field_owners;
+				if(server_response[1]) field_owners=server_response[1].field_owners;
+					else field_owners=[0,0,0,0,0,0,0,0];
+				//console.log(field_owners);
+				//let field_data = ajax_field_info.response;
+				//let html = "<table width=100% border=1>";
+				let group_colors=['white','DeepPink', 'LightGreen','Cyan','RosyBrown', 'green','Teal','Crimson', 'greenyellow','Sienna','Yellow'];
+				var colors = ['red','green','blue','orange','black','blue','orange','black'];//user colors
+				var field_colors=[];
+					for (let i=0;i<field_owners.length;i++)
+						{
+							for (let k=0;k<server_response[1].users_id.length;k++)
+								{
+									//console.log(1);
+									if (field_owners[i]==server_response[1].users_id[k]) 
+										{
+											field_colors[i]=colors[k];
+											//console.log(field_colors[i]);
+										}
+								}
+						}
+				
+				for(let i=0;i<field_data.length;i++)
+					{
+					let html="<table width=100% height=100% valign=top border=0 cellpadding=0 cellspacing=0";
+				
+
+					html+=">";
+					html+="<tr height=100%><td align=center colspan=2><font size=-1>"+field_data[i].field_name+"</font></td></tr>";
+					if (field_data[i].field_type=="PROPERTY") 
+						{
+							html+="<tr><td colspan=2 align=center>"+field_data[i].base_price+"$</td></tr>";
+							//добавляем строку с цветом собственика и кнопкой
+							html+="<tr><td align=center ";
+							if (field_owners[i]!=null && field_owners[i]!=0) //красим в цвет собственника
+								{
+									html+=" border=0 cellpadding=2 style=\"background-color: " + field_colors[i] + "; border-style: solid\"";
+								}
+							html+=">";
+							if (field_owners[i]!=null && field_owners[i]!=0) html+="owner";
+							
+							html+="</td><td align=center width=100%>";
+							//если я собственник - выводим кнопку
+							if (user_id==field_owners[i])
+								html+="<button type=submit id=\"sell_button\" onclick=\"sell_field(" + game_id +"," + user_id + "," +  field_data[i].field_id + ")\">sell</button>"; 
+							
+						}
+							
+					html+="</td></tr></table>";
+
+
+					document.getElementById("field_"+field_data[i].field_id).innerHTML=html;
+					
+					if (field_data[i].field_type=="PROPERTY") 
+						{
+							//console.log(field_data[i].field_id);
+							
+							document.getElementById("cell_"+field_data[i].field_id).style.background=group_colors[field_data[i].group_id];
+						}
+					//document.getElementById("cell_"+field_data[i].field_id).style.borderCollapse="collapse";
+					
+					}
+				
+			} else {
+				// код при ошибке
+				console.log("error: " + ajax_field_info.response);
+			}
+		}
+	}
+
+}
+
+
+function show_chat ()
+{
+	var show_chat_address="http://127.0.0.1:8080/show_chat?ID="+game_id;
+	var ajax_game_chat = new XMLHttpRequest();
+	ajax_game_chat.open('get', show_chat_address);
+	ajax_game_chat.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	ajax_game_chat.send();
+
+	// выполнить код, когда придёт ответ
+	ajax_game_chat.onreadystatechange = function() 
+		{
+		if (ajax_game_chat.readyState == 4) 
+			{
+			if (ajax_game_chat.status == 200 || ajax_game_chat.status == 304) 
+				{
+				//код при успешном запросе
+				//парсим ответ сервера 
+				let chat_data = JSON.parse(ajax_game_chat.response);
+				//console.log(chat_data);
+				//сортировка массива
+				
+				do
+				{
+				var counter=0;
+				for (let i=0;i<chat_data.length-1;i++)
+					{
+					data1=new Date(chat_data[i].data);
+					data2=new Date(chat_data[i+1].data);
+					if (data1>data2)
+						{
+						counter++;
+						[chat_data[i],chat_data[i+1]]=[chat_data[i+1],chat_data[i]];
+						}
+					}
+				} while (counter);	
+					
+					
+				document.getElementById("chat").innerHTML="";
+				let html="<font size=-1>Chat</font><br><table width=100% border=1 cellspacing=0 cellpadding=2 style=\"border-collapse: collapse\"><tr><td align=center><font size=-1>Time</font></td><td align=center><font size=-1>User</font></td><td align=center><font size=-1>Message</font></td></tr>";
+				for(let i=0;i<chat_data.length;i++)
+				{
+					html += "<tr><td align=center nowrap><font size=-1>" + chat_data[i].data.substr(8,2) + "." + chat_data[i].data.substr(5,2) + " " + chat_data[i].data.substr(11,8) + "</font></td><td align=center nowrap><font size=-1>" + (chat_data[i].user_id>0 ? chat_data[i].user_id : "robot") + "</font></td><td width=100% align=left><font size=-1>" + chat_data[i].message + "</font></td></tr>";
+					//document.getElementById("chat").innerHTML+=html;
+				}
+				html+="</table>";
+				document.getElementById("chat").innerHTML=html;
+				
+				} else {
+				// код при ошибке
+				console.log("error: " + ajax_game_chat.response);
+				}
+		}
+	}
+
+}
+
+function show_controls ()
+{
+	if (login==null || pass==null) 
+		{
+		console.log("no login data");
+		return false;
+		}
+	
+	var controls = new Promise (get_my_id);
+	
+	controls
+		.then(get_game_data)
+		.then(draw_controls)
+		.catch(err=>{
+			console.log("promise controls error: " + err)
+			
+			});
+	
+	function get_my_id (resolve, reject)
+		{
+			if (user_id!=undefined) 
+				{
+					//console.log("id get from var");
+					resolve (user_id);
+				}
+			var get_id_address="http://127.0.0.1:8080/get_ID";
+			var ajax_get_id = new XMLHttpRequest();
+			ajax_get_id.open('post', get_id_address,true);
+			ajax_get_id.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+			var post_request = new FormData();
+			post_request.append(login, pass);
+			ajax_get_id.send(post_request);
+
+			// выполнить код, когда придёт ответ
+			ajax_get_id.onreadystatechange = function() 
+				{
+				if (ajax_get_id.readyState == 4) 
+					{
+					if (ajax_get_id.status == 200 || ajax_get_id.status == 304) 
+						{
+						//возвращаем ID игрока
+						user_id = ajax_get_id.response;
+						resolve(ajax_get_id.response); 
+						return;
+						}
+					else
+						{
+						//возвращаем ошибку
+						reject(ajax_get_id.response);
+						return;
+						}
+					}
+				}
+		}
+
+	function get_game_data(user_id)
+		{
+			//console.log("id=" + user_id);
+			
+			var get_data = new Promise (get_my_data);
+	
+			get_data
+			.catch((err)=>(console.log("promise controls #2 error: " + err)));
+	
+			function get_my_data (resolve, reject)
+				{
+					//запрашиваем и возвращаем данные по конкретной игре
+					var get_gamedata_address="http://127.0.0.1:8080/get_game_data?id=" + game_id;
+					var ajax_get_gamedata = new XMLHttpRequest();
+					ajax_get_gamedata.open('get', get_gamedata_address);
+					ajax_get_gamedata.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+					ajax_get_gamedata.send();
+
+					// выполнить код, когда придёт ответ
+					ajax_get_gamedata.onreadystatechange = function() 
+						{
+						if (ajax_get_gamedata.readyState == 4) 
+							{
+							if (ajax_get_gamedata.status == 200 || ajax_get_gamedata.status == 304) 
+								{
+								//возвращаем данные игры
+								resolve(ajax_get_gamedata.response); 
+								return;
+								}
+							else
+								{
+								//возвращаем ошибку
+								reject(ajax_get_gamedata.response);
+								return;
+								}
+							}
+						}
+				}
+			//	===========================================		
+			return get_data; //возвращаем промис
+		}
+		
+	function draw_controls(data_for_controls)
+		{
+			if (data_for_controls=="no game")
+				{
+					console.log("server response=" + data_for_controls);
+					return;
+				}
+			data_array=JSON.parse(data_for_controls);
+			/* Справочно
+			data_to_send.push(res.rows[0].users_id);//0
+			data_to_send.push(res.rows[0].users_money);
+			data_to_send.push(res.rows[0].users_positions);
+			data_to_send.push(res.rows[0].active_user_id);
+			data_to_send.push(res.rows[0].next_turn);//4
+			data_to_send.push(res.rows[0].move_state);
+			data_to_send.push(res.rows[0].field_owners);
+			data_to_send.push(res.rows[0].fields_layout);
+			data_to_send.push(res.rows[0].auction);//8
+			*/
+			
+			//console.log("game_id=" + game_id);
+			//console.log("act_user=" + data_array[3]);
+			//console.log(data_array[5]);
+			//обрабатываем данные по игре
+			//user_id=data_array[3]; // debug!
+			//стираем панель управления
+			//if (user_id!=data_array[3])	document.getElementById("controls").innerHTML="";
+
+			if (user_id==data_array[3] || true)
+				{
+					//находим позицию пользователя в массиве
+					let user_index=-1;
+					for (let i=0;i<data_array[0].length;i++)
+						{
+							if (user_id==data_array[0][i]) user_index=i;
+							if (data_array[3]==data_array[0][i]) act_user_index=i;
+						}
+					
+					//пользователь активен
+					//рисуем форму
+					let html="<table width=100% border=1 cellpadding=1 cellspacing=0  style=\"border-collapse: collapse\" valign=top>";
+					html+="<tr><td align=left colspan=2>Active user(ID=" + data_array[0][act_user_index] + ") info</td></tr>";
+					
+					html+="<tr><td align=left>Position</td><td align=center>";
+					html+=data_array[7][data_array[2][act_user_index]].field_id + "</td></tr>";
+					
+					
+					html+="<tr><td align=left>Field name</td><td align=center>";
+					html+=data_array[7][data_array[2][act_user_index]].field_name + "</td></tr>";
+					//console.log("ind=" + user_index + " id=" + user_id + " pos=" + data_array[2][user_index]);
+					if (data_array[7][data_array[2][act_user_index]].field_type=="PROPERTY")
+						{
+					
+							html+="<tr><td align=left>Base price</td><td align=center>";
+								html+= data_array[7][data_array[2][act_user_index]].base_price;
+							html+="</td></tr>";
+							html+="<tr><td align=left>Rent income</td><td align=center>";
+								html+= data_array[7][data_array[2][act_user_index]].rent_income + " (" + Number(data_array[7][data_array[2][act_user_index]].rent_income)*2+")";
+							html+="</td></tr>";
+							html+="<tr><td align=left>Owner ID</td><td align=center>";
+							if(data_array[6][data_array[2][act_user_index]]>0)
+								html+= data_array[6][data_array[2][act_user_index]];
+								else html+="<font color=green>no owner</font>";
+							html+="</td></tr>";
+						
+							if(data_array[5]=='wait' && user_id == data_array[3])
+								{
+									//выводим кнопку КУПИТЬ в режиме WAIT если поле свободно и у пользователя достаточно денег
+									if (data_array[6][data_array[2][act_user_index]]==0 || data_array[6][data_array[2][act_user_index]]==undefined)  //нет хозяина
+										if (Number(data_array[1][user_index])>=Number(data_array[7][data_array[2][user_index]].base_price))  //достаточно денег
+											{
+												html+="<tr><td align=center colspan=2>";
+												html+="<button type=submit id=\"buy_button\" onclick=\"buy_field(" + game_id +"," + user_id + "," +  data_array[2][act_user_index] + ")\">Buy</button>";
+												html+="</td></tr>";
+											}
+								}
+							
+							
+							if(data_array[5]=='auction')
+								{
+									//console.log(data_array[8]); // field, price, user_id, end_time
+									html+="<tr><td colspan=2><font color=red><b>Auction!</b></font></td></tr>";
+									html+="<tr><td>Top buyer ID</td><td align=center>";
+									if(data_array[8][2]!=0) html+=data_array[8][2];
+										else html+="no buyer";
+									html+="</td></tr>";
+									html+="<tr><td>Best price</td><td align=center>"+data_array[8][1]+"</td></tr>";
+									let now=new Date();
+									//now.setSeconds(now.getTimezoneOffset()*60);
+									let end=new Date(data_array[8][3]);
+									//console.log("end= " + end);
+									//console.log("now= " + now);
+									auction_time = (end-now)/1000;		
+									html+="<tr><td>Time</td><td align=center><span id=\"auction_time\">" + auction_time.toFixed(0) + "</span> s</td></tr>";
+									if(data_array[0].some((x)=>{return (x==user_id)}))  //наш ID есть в списке участников
+										{
+											if(auction_time>0) //пока не вышло время
+												{
+													//кнопка ставки в аукционе
+													html+="<tr><td align=center colspan=2>";
+													let bet_price=0;
+													//console.log("data_array[8][2]=" + data_array[8][2] + " data_array[8][1]=" + data_array[8][1]);
+													if (data_array[8][2]==0) bet_price=Number(data_array[8][1]);
+														else bet_price=Number(data_array[8][1])+50; //если ставки уже были цена+50
+													html+="<button type=submit id=\"buy_auction_button\" onclick=\"buy_auction_field(" + game_id +"," + user_id + "," +  bet_price + ")\">Bet " + (bet_price) + "$</button>";
+													html+="</td></tr>";
+												}
+										}
+									
+									
+									
+								}
+						
+						}
+					
+					html+="</table>";
+					document.getElementById("controls").innerHTML=html;
+				}
+			
+			
+			return;
+		}
+		
+}
+
+show_scores();
+show_field();
+show_chat();
+show_controls();
+
+
+function sell_field(game_id,user_id,field_id)
+	{
+		//console.log(game_id + " " + user_id + " " + field_id);
+		var sell_f_address="http://127.0.0.1:8080/sell_field";
+		var ajax_sell_f = new XMLHttpRequest();
+		ajax_sell_f.open('post', sell_f_address,true);
+		ajax_sell_f.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+		var post_request = new FormData();
+		post_request.append("login", login);
+		post_request.append("pass", pass);
+		post_request.append("user_id",user_id);
+		post_request.append("game_id", game_id);
+		post_request.append("field_id", field_id);
+		//console.log(login, pass, user_id, game_id, field_id);
+		ajax_sell_f.send(post_request);
+
+		// выполнить код, когда придёт ответ
+		ajax_sell_f.onreadystatechange = function() 
+			{
+			if (ajax_sell_f.readyState == 4) 
+				{
+				if (ajax_sell_f.status == 200 || ajax_sell_f.status == 304) 
+					{
+						//просто обновляем поле
+						show_field();
+					}
+				else
+					{
+						//возвращаем ошибку
+						console.log("error sell field " + ajax_sell_f.response);
+					}
+				}
+			}
+	
+	}
+
+function buy_field(game_id,user_id,field_id)
+	{
+		//console.log(game_id + " " + user_id + " " + field_id);
+		var buy = new Promise (buy_f);
+	
+		buy
+		.then(update_controls)
+		.catch((err)=>(console.log("buy error: " + err)));
+		
+	function buy_f (resolve, reject)
+		{
+			var buy_f_address="http://127.0.0.1:8080/buy_field";
+			var ajax_buy_f = new XMLHttpRequest();
+			ajax_buy_f.open('post', buy_f_address,true);
+			ajax_buy_f.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+			var post_request = new FormData();
+			post_request.append("login", login);
+			post_request.append("pass", pass);
+			post_request.append("user_id",user_id);
+			post_request.append("game_id", game_id);
+			post_request.append("field_id", field_id);
+			//console.log(login, pass, user_id, game_id, field_id);
+			ajax_buy_f.send(post_request);
+
+			// выполнить код, когда придёт ответ
+			ajax_buy_f.onreadystatechange = function() 
+				{
+				if (ajax_buy_f.readyState == 4) 
+					{
+					if (ajax_buy_f.status == 200 || ajax_buy_f.status == 304) 
+						{
+						//возвращаем ID игрока
+						//user_id = ajax_get_id.response;
+						resolve(ajax_buy_f.response); 
+						return;
+						}
+					else
+						{
+						//возвращаем ошибку
+						reject(ajax_buy_f.response);
+						return;
+						}
+					}
+				}
+		}
+
+	function update_controls(response)
+		{
+			if (response=="OK")
+				{
+					console.log("field bought");
+					//show_controls();
+					show_chat();
+				}
+		}
+
+}
+
+function buy_auction_field(game_id, user_id, bet)
+	{
+		//console.log(game_id + " " + user_id + " " + field_id);
+		var buy = new Promise (buy_f);
+	
+		buy
+		.then(update_controls)
+		.catch((err)=>(console.log("buy error: " + err)));
+		
+	function buy_f (resolve, reject)
+		{
+			var buy_f_address="http://127.0.0.1:8080/buy_auction_field";
+			var ajax_buy_f = new XMLHttpRequest();
+			ajax_buy_f.open('post', buy_f_address,true);
+			ajax_buy_f.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+			var post_request = new FormData();
+			post_request.append("login", login);
+			post_request.append("pass", pass);
+			post_request.append("user_id",user_id);
+			post_request.append("game_id", game_id);
+			post_request.append("bet", bet);
+			//console.log(login, pass, user_id, game_id, field_id);
+			ajax_buy_f.send(post_request);
+
+			// выполнить код, когда придёт ответ
+			ajax_buy_f.onreadystatechange = function() 
+				{
+				if (ajax_buy_f.readyState == 4) 
+					{
+					if (ajax_buy_f.status == 200 || ajax_buy_f.status == 304) 
+						{
+						//возвращаем ID игрока
+						//user_id = ajax_get_id.response;
+						resolve(ajax_buy_f.response); 
+						return;
+						}
+					else
+						{
+						//возвращаем ошибку
+						reject(ajax_buy_f.response);
+						return;
+						}
+					}
+				}
+		}
+
+	function update_controls(response)
+		{
+			if (response=="OK")
+				{
+					console.log("bet accepted");
+					show_controls();
+					show_chat();
+				}
+			else console.log("bet failure");
+		}
+
+}
+
+
+
+	
+setTimeout(function refresh_page() {
+show_scores();
+show_field();
+show_chat();
+show_controls();
+setTimeout(refresh_page, 4000);
+}, 4000);
+
+
+</script>
